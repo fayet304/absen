@@ -17,6 +17,7 @@
     .scrollbar-thin::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
     .scrollbar-thin::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
     @media print { .no-print { display: none !important; } }
+    .modal-overlay { background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); }
   </style>
 </head>
 <body class="bg-slate-50 min-h-screen">
@@ -41,20 +42,29 @@
           { id: 'd5', name: 'Security' },
         ],
         workSchedules: [
-          { id: 'ws1', divisionId: 'd1', shiftName: 'PAGI', startTime: '08:00', endTime: '16:00' },
-          { id: 'ws2', divisionId: 'd1', shiftName: 'SIANG', startTime: '14:00', endTime: '22:00' },
-          { id: 'ws3', divisionId: 'd1', shiftName: 'MALAM', startTime: '22:00', endTime: '06:00' },
-          { id: 'ws4', divisionId: 'd2', shiftName: 'PAGI', startTime: '08:00', endTime: '16:00' },
-          { id: 'ws5', divisionId: 'd2', shiftName: 'SIANG', startTime: '14:00', endTime: '22:00' },
-          { id: 'ws6', divisionId: 'd2', shiftName: 'MALAM', startTime: '22:00', endTime: '06:00' },
+          { id: 'ws1', divisionId: 'd1', shiftName: 'PAGI', startTime: '08:00', endTime: '20:00' },
+          { id: 'ws2', divisionId: 'd1', shiftName: 'SIANG', startTime: '08:00', endTime: '20:00' },
+          { id: 'ws3', divisionId: 'd1', shiftName: 'MALAM', startTime: '08:00', endTime: '20:00' },
+          { id: 'ws4', divisionId: 'd2', shiftName: 'PAGI', startTime: '08:00', endTime: '20:00' },
+          { id: 'ws5', divisionId: 'd2', shiftName: 'SIANG', startTime: '08:00', endTime: '20:00' },
+          { id: 'ws6', divisionId: 'd2', shiftName: 'MALAM', startTime: '08:00', endTime: '20:00' },
+          { id: 'ws7', divisionId: 'd3', shiftName: 'PAGI', startTime: '08:00', endTime: '16:00' },
+          { id: 'ws8', divisionId: 'd3', shiftName: 'SIANG', startTime: '14:00', endTime: '22:00' },
+          { id: 'ws9', divisionId: 'd3', shiftName: 'MALAM', startTime: '22:00', endTime: '06:00' },
+          { id: 'ws10', divisionId: 'd4', shiftName: 'PAGI', startTime: '09:00', endTime: '17:00' },
+          { id: 'ws11', divisionId: 'd4', shiftName: 'SIANG', startTime: '12:00', endTime: '20:00' },
+          { id: 'ws12', divisionId: 'd4', shiftName: 'MALAM', startTime: '20:00', endTime: '04:00' },
+          { id: 'ws13', divisionId: 'd5', shiftName: 'PAGI', startTime: '06:00', endTime: '18:00' },
+          { id: 'ws14', divisionId: 'd5', shiftName: 'SIANG', startTime: '18:00', endTime: '06:00' },
+          { id: 'ws15', divisionId: 'd5', shiftName: 'MALAM', startTime: '22:00', endTime: '06:00' },
         ],
         permissionTypes: [
-          { id: 'pt1', name: 'Izin Kamar Mandi', active: true },
-          { id: 'pt2', name: 'Izin Ibadah', active: true },
-          { id: 'pt3', name: 'Izin Beli Makan', active: true },
-          { id: 'pt4', name: 'Izin Merokok', active: true },
-          { id: 'pt5', name: 'Istirahat 1', active: true },
-          { id: 'pt6', name: 'Istirahat 2', active: true },
+          { id: 'pt1', name: 'Izin Kamar Mandi', active: true, maxDuration: 15 },
+          { id: 'pt2', name: 'Izin Ibadah', active: true, maxDuration: 15 },
+          { id: 'pt3', name: 'Izin Beli Makan', active: true, maxDuration: 30 },
+          { id: 'pt4', name: 'Izin Merokok', active: true, maxDuration: 10 },
+          { id: 'pt5', name: 'Istirahat 1', active: true, maxDuration: 30 },
+          { id: 'pt6', name: 'Istirahat 2', active: true, maxDuration: 30 },
         ],
         attendances: [],
         breaks: [],
@@ -112,11 +122,20 @@
         const div = { id: 'd' + Date.now(), name };
         divisions.push(div);
         this.set('divisions', divisions);
+        
+        // Create default schedules for new division
+        ['PAGI', 'SIANG', 'MALAM'].forEach(shift => {
+          this.updateWorkSchedule(div.id, shift, '08:00', '16:00');
+        });
+        
         return div;
       },
 
       // Work Schedules
       getWorkSchedules() { return this.get('workSchedules'); },
+      getWorkSchedulesByDivision(divisionId) {
+        return this.getWorkSchedules().filter(s => s.divisionId === divisionId);
+      },
       updateWorkSchedule(divisionId, shiftName, startTime, endTime) {
         const schedules = this.getWorkSchedules();
         const idx = schedules.findIndex(s => s.divisionId === divisionId && s.shiftName === shiftName);
@@ -124,9 +143,14 @@
           schedules[idx].startTime = startTime;
           schedules[idx].endTime = endTime;
         } else {
-          schedules.push({ id: 'ws' + Date.now(), divisionId, shiftName, startTime, endTime });
+          schedules.push({ id: 'ws' + Date.now() + Math.random().toString(36).substr(2, 5), divisionId, shiftName, startTime, endTime });
         }
         this.set('workSchedules', schedules);
+      },
+      saveWorkSchedules(divisionId, schedulesData) {
+        schedulesData.forEach(s => {
+          this.updateWorkSchedule(divisionId, s.shiftName, s.startTime, s.endTime);
+        });
       },
 
       // Permission Types
@@ -134,12 +158,25 @@
         const types = this.get('permissionTypes');
         return activeOnly ? types.filter(pt => pt.active) : types;
       },
-      addPermissionType(name) {
+      getPermissionType(id) {
+        return this.getPermissionTypes().find(pt => pt.id === id);
+      },
+      addPermissionType(name, maxDuration = 15) {
         const types = this.getPermissionTypes();
-        const pt = { id: 'pt' + Date.now(), name, active: true };
+        const pt = { id: 'pt' + Date.now(), name, active: true, maxDuration };
         types.push(pt);
         this.set('permissionTypes', types);
         return pt;
+      },
+      updatePermissionType(id, data) {
+        const types = this.getPermissionTypes();
+        const idx = types.findIndex(pt => pt.id === id);
+        if (idx !== -1) {
+          types[idx] = { ...types[idx], ...data };
+          this.set('permissionTypes', types);
+          return types[idx];
+        }
+        return null;
       },
       togglePermissionType(id) {
         const types = this.getPermissionTypes();
@@ -255,13 +292,15 @@
         this.set('attendances', attendances);
 
         const now = new Date().toTimeString().split(' ')[0];
+        const permissionType = this.getPermissionType(permissionTypeId);
         const brk = {
           id: 'b' + Date.now(),
           attendanceId: attendance.id,
           permissionTypeId,
           startTime: now,
           endTime: null,
-          duration: 0
+          duration: 0,
+          maxDuration: permissionType?.maxDuration || 15
         };
         breaks.push(brk);
         this.set('breaks', breaks);
@@ -393,46 +432,25 @@
                       <p class="text-xs text-slate-500">${this.currentUser.name}</p>
                     </div>
                   </div>
-                  <div class="flex items-center gap-2">
+                  <div class="flex items-center gap-2 flex-wrap">
                     <button onclick="State.setView('dashboard')" 
                       class="px-3 py-2 text-sm font-medium rounded-lg transition ${this.currentView === 'dashboard' ? 'bg-emerald-500 text-white' : 'text-slate-600 hover:bg-slate-100'}">
-                      <span class="flex items-center gap-1">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                        </svg>
-                        Dashboard
-                      </span>
+                      Dashboard
                     </button>
                     ${isAdmin ? `
                       <button onclick="State.setView('admin')" 
                         class="px-3 py-2 text-sm font-medium rounded-lg transition ${this.currentView === 'admin' ? 'bg-emerald-500 text-white' : 'text-slate-600 hover:bg-slate-100'}">
-                        <span class="flex items-center gap-1">
-                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                          </svg>
-                          Admin
-                        </span>
+                        Admin
                       </button>
                       <button onclick="State.setView('reports')" 
                         class="px-3 py-2 text-sm font-medium rounded-lg transition ${this.currentView === 'reports' ? 'bg-emerald-500 text-white' : 'text-slate-600 hover:bg-slate-100'}">
-                        <span class="flex items-center gap-1">
-                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                          </svg>
-                          Laporan
-                        </span>
+                        Laporan
                       </button>
                     ` : ''}
-                    <div class="w-px h-8 bg-slate-200 mx-1"></div>
+                    <div class="w-px h-8 bg-slate-200 mx-1 hidden sm:block"></div>
                     <button onclick="State.logout()" 
                       class="px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition">
-                      <span class="flex items-center gap-1">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
-                        </svg>
-                        Keluar
-                      </span>
+                      Keluar
                     </button>
                   </div>
                 </div>
@@ -448,10 +466,13 @@
             <footer class="bg-white border-t py-4 mt-auto no-print">
               <div class="max-w-7xl mx-auto px-4 text-center text-sm text-slate-500">
                 Sistem Absensi Karyawan &copy; ${new Date().getFullYear()} | 
-                <button onclick="DB.reset(); location.reload();" class="text-red-500 hover:underline">Reset Data</button>
+                <button onclick="if(confirm('Reset semua data?')){DB.reset();location.reload();}" class="text-red-500 hover:underline">Reset Data</button>
               </div>
             </footer>
           </div>
+          
+          <!-- Modal Container -->
+          <div id="modalContainer"></div>
         `;
       },
 
@@ -526,7 +547,7 @@
             ${activeBreak ? `
               <!-- Active Break -->
               <div class="bg-amber-50 border border-amber-200 rounded-xl p-4">
-                <div class="flex items-center justify-between">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div class="flex items-center gap-3">
                     <div class="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center">
                       <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -535,7 +556,7 @@
                     </div>
                     <div>
                       <p class="font-medium text-amber-800">Sedang Izin: ${permissionTypes.find(pt => pt.id === activeBreak.permissionTypeId)?.name || 'Izin'}</p>
-                      <p class="text-sm text-amber-600">Mulai: ${formatTime(activeBreak.startTime)}</p>
+                      <p class="text-sm text-amber-600">Mulai: ${formatTime(activeBreak.startTime)} | Maks: ${activeBreak.maxDuration} menit</p>
                     </div>
                   </div>
                   <button onclick="AppState.endBreak('${activeBreak.id}')" 
@@ -610,9 +631,10 @@
                   <div class="grid grid-cols-2 gap-2">
                     ${permissionTypes.map(pt => `
                       <button onclick="AppState.startBreak('${pt.id}')" 
-                        class="py-3 px-4 border border-slate-200 rounded-lg hover:bg-slate-50 transition text-sm font-medium text-slate-700 flex flex-col items-center gap-1">
+                        class="py-3 px-3 border border-slate-200 rounded-lg hover:bg-slate-50 transition text-sm font-medium text-slate-700 flex flex-col items-center gap-1">
                         <span class="text-lg">${this.getPermissionIcon(pt.name)}</span>
-                        ${pt.name.replace('Izin ', '')}
+                        <span>${pt.name.replace('Izin ', '')}</span>
+                        <span class="text-xs text-slate-400">max ${pt.maxDuration}m</span>
                       </button>
                     `).join('')}
                   </div>
@@ -632,17 +654,23 @@
                         <th class="text-left py-2 text-slate-500 font-medium">Mulai</th>
                         <th class="text-left py-2 text-slate-500 font-medium">Selesai</th>
                         <th class="text-left py-2 text-slate-500 font-medium">Durasi</th>
+                        <th class="text-left py-2 text-slate-500 font-medium">Maks</th>
                       </tr>
                     </thead>
                     <tbody>
-                      ${breaks.map(b => `
-                        <tr class="border-b border-slate-100">
-                          <td class="py-2">${permissionTypes.find(pt => pt.id === b.permissionTypeId)?.name || '-'}</td>
-                          <td class="py-2">${formatTime(b.startTime)}</td>
-                          <td class="py-2">${formatTime(b.endTime)}</td>
-                          <td class="py-2">${b.duration ? b.duration + ' menit' : '-'}</td>
-                        </tr>
-                      `).join('')}
+                      ${breaks.map(b => {
+                        const pt = permissionTypes.find(p => p.id === b.permissionTypeId);
+                        const isOver = b.duration > b.maxDuration;
+                        return `
+                          <tr class="border-b border-slate-100">
+                            <td class="py-2">${pt?.name || '-'}</td>
+                            <td class="py-2">${formatTime(b.startTime)}</td>
+                            <td class="py-2">${formatTime(b.endTime)}</td>
+                            <td class="py-2 ${isOver ? 'text-red-600 font-medium' : ''}">${b.duration ? b.duration + ' menit' : '-'}</td>
+                            <td class="py-2 text-slate-400">${b.maxDuration} menit</td>
+                          </tr>
+                        `;
+                      }).join('')}
                     </tbody>
                   </table>
                 </div>
@@ -666,48 +694,46 @@
 
       // ==================== ADMIN VIEW ====================
       getAdminView() {
-        const divisions = DB.getDivisions();
-        const users = DB.getUsers();
-        const permissionTypes = DB.getPermissionTypes();
-        const schedules = DB.getWorkSchedules();
-
         return `
           <div class="space-y-6 fade-in">
             <h2 class="text-2xl font-bold text-slate-800">Panel Admin</h2>
             
             <!-- Tabs -->
-            <div class="border-b border-slate-200">
-              <nav class="flex gap-4">
+            <div class="border-b border-slate-200 overflow-x-auto">
+              <nav class="flex gap-4 min-w-max">
                 <button onclick="AppState.setAdminTab('divisions')" id="tab-divisions"
-                  class="px-4 py-2 font-medium border-b-2 border-emerald-500 text-emerald-600">
-                  Divisi
+                  class="px-4 py-2 font-medium border-b-2 border-emerald-500 text-emerald-600 whitespace-nowrap">
+                  📁 Divisi
                 </button>
                 <button onclick="AppState.setAdminTab('employees')" id="tab-employees"
-                  class="px-4 py-2 font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-700">
-                  Karyawan
-                </button>
-                <button onclick="AppState.setAdminTab('permissions')" id="tab-permissions"
-                  class="px-4 py-2 font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-700">
-                  Jenis Izin
+                  class="px-4 py-2 font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap">
+                  👥 Karyawan
                 </button>
                 <button onclick="AppState.setAdminTab('schedules')" id="tab-schedules"
-                  class="px-4 py-2 font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-700">
-                  Jadwal Kerja
+                  class="px-4 py-2 font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap">
+                  ⏰ Jadwal Kerja
+                </button>
+                <button onclick="AppState.setAdminTab('permissions')" id="tab-permissions"
+                  class="px-4 py-2 font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap">
+                  📋 Jenis Izin
                 </button>
               </nav>
             </div>
 
             <!-- Tab Content -->
             <div id="adminContent">
-              ${this.getAdminDivisions(divisions, users)}
+              ${this.getAdminDivisions()}
             </div>
           </div>
         `;
       },
 
-      getAdminDivisions(divisions, users) {
+      getAdminDivisions() {
+        const divisions = DB.getDivisions();
+        const users = DB.getUsers();
+        
         return `
-          <div class="bg-white rounded-xl shadow-sm">
+          <div class="bg-white rounded-xl shadow-sm overflow-hidden">
             <div class="p-4 border-b flex justify-between items-center">
               <h3 class="font-semibold">Daftar Divisi</h3>
               <button onclick="AppState.showAddDivision()" 
@@ -720,90 +746,18 @@
                 <tr>
                   <th class="text-left px-4 py-3 font-medium text-slate-500">Nama Divisi</th>
                   <th class="text-left px-4 py-3 font-medium text-slate-500">Jumlah Karyawan</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${divisions.map(d => `
-                  <tr class="border-t">
-                    <td class="px-4 py-3 font-medium">${d.name}</td>
-                    <td class="px-4 py-3">${users.filter(u => u.divisionId === d.id).length}</td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-          </div>
-        `;
-      },
-
-      getAdminEmployees(users, divisions) {
-        return `
-          <div class="bg-white rounded-xl shadow-sm">
-            <div class="p-4 border-b flex justify-between items-center">
-              <h3 class="font-semibold">Daftar Karyawan</h3>
-              <button onclick="AppState.showAddEmployee()" 
-                class="px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition text-sm font-medium">
-                + Tambah Karyawan
-              </button>
-            </div>
-            <table class="w-full">
-              <thead class="bg-slate-50">
-                <tr>
-                  <th class="text-left px-4 py-3 font-medium text-slate-500">Nama</th>
-                  <th class="text-left px-4 py-3 font-medium text-slate-500">Username</th>
-                  <th class="text-left px-4 py-3 font-medium text-slate-500">Role</th>
-                  <th class="text-left px-4 py-3 font-medium text-slate-500">Divisi</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${users.map(u => `
-                  <tr class="border-t">
-                    <td class="px-4 py-3 font-medium">${u.name}</td>
-                    <td class="px-4 py-3">${u.username}</td>
-                    <td class="px-4 py-3">
-                      <span class="px-2 py-1 text-xs font-medium rounded-full ${u.role === 'ADMIN' ? 'bg-purple-100 text-purple-700' : 'bg-slate-100 text-slate-600'}">
-                        ${u.role}
-                      </span>
-                    </td>
-                    <td class="px-4 py-3">${divisions.find(d => d.id === u.divisionId)?.name || '-'}</td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-          </div>
-        `;
-      },
-
-      getAdminPermissions(permissionTypes) {
-        return `
-          <div class="bg-white rounded-xl shadow-sm">
-            <div class="p-4 border-b flex justify-between items-center">
-              <h3 class="font-semibold">Jenis Izin</h3>
-              <button onclick="AppState.showAddPermissionType()" 
-                class="px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition text-sm font-medium">
-                + Tambah Jenis Izin
-              </button>
-            </div>
-            <table class="w-full">
-              <thead class="bg-slate-50">
-                <tr>
-                  <th class="text-left px-4 py-3 font-medium text-slate-500">Nama Izin</th>
-                  <th class="text-left px-4 py-3 font-medium text-slate-500">Status</th>
                   <th class="text-left px-4 py-3 font-medium text-slate-500">Aksi</th>
                 </tr>
               </thead>
               <tbody>
-                ${permissionTypes.map(pt => `
-                  <tr class="border-t">
-                    <td class="px-4 py-3 font-medium">${pt.name}</td>
+                ${divisions.map(d => `
+                  <tr class="border-t hover:bg-slate-50">
+                    <td class="px-4 py-3 font-medium">${d.name}</td>
+                    <td class="px-4 py-3">${users.filter(u => u.divisionId === d.id).length} orang</td>
                     <td class="px-4 py-3">
-                      <span class="px-2 py-1 text-xs font-medium rounded-full ${pt.active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}">
-                        ${pt.active ? 'Aktif' : 'Nonaktif'}
-                      </span>
-                    </td>
-                    <td class="px-4 py-3">
-                      <button onclick="AppState.togglePermission('${pt.id}')" 
-                        class="text-sm text-emerald-600 hover:text-emerald-700 font-medium">
-                        ${pt.active ? 'Nonaktifkan' : 'Aktifkan'}
+                      <button onclick="AppState.editDivisionSchedule('${d.id}')" 
+                        class="text-sm text-emerald-600 hover:text-emerald-700 font-medium mr-3">
+                        ⏰ Jadwal
                       </button>
                     </td>
                   </tr>
@@ -814,37 +768,176 @@
         `;
       },
 
-      getAdminSchedules(divisions, schedules) {
+      getAdminEmployees() {
+        const users = DB.getUsers();
+        const divisions = DB.getDivisions();
+        
+        return `
+          <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+            <div class="p-4 border-b flex justify-between items-center">
+              <h3 class="font-semibold">Daftar Karyawan</h3>
+              <button onclick="AppState.showAddEmployee()" 
+                class="px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition text-sm font-medium">
+                + Tambah Karyawan
+              </button>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full">
+                <thead class="bg-slate-50">
+                  <tr>
+                    <th class="text-left px-4 py-3 font-medium text-slate-500">Nama</th>
+                    <th class="text-left px-4 py-3 font-medium text-slate-500">Username</th>
+                    <th class="text-left px-4 py-3 font-medium text-slate-500">Role</th>
+                    <th class="text-left px-4 py-3 font-medium text-slate-500">Divisi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${users.map(u => `
+                    <tr class="border-t hover:bg-slate-50">
+                      <td class="px-4 py-3 font-medium">${u.name}</td>
+                      <td class="px-4 py-3 text-slate-500">${u.username}</td>
+                      <td class="px-4 py-3">
+                        <span class="px-2 py-1 text-xs font-medium rounded-full ${u.role === 'ADMIN' ? 'bg-purple-100 text-purple-700' : 'bg-slate-100 text-slate-600'}">
+                          ${u.role}
+                        </span>
+                      </td>
+                      <td class="px-4 py-3">${divisions.find(d => d.id === u.divisionId)?.name || '-'}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        `;
+      },
+
+      getAdminSchedules() {
+        const divisions = DB.getDivisions();
+        const schedules = DB.getWorkSchedules();
+        
         return `
           <div class="space-y-4">
-            ${divisions.map(div => `
-              <div class="bg-white rounded-xl shadow-sm overflow-hidden">
-                <div class="p-4 bg-slate-50 border-b">
-                  <h3 class="font-semibold">${div.name}</h3>
+            <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 text-amber-800 text-sm">
+              💡 <strong>Pengaturan Jadwal Kerja:</strong> Atur jam masuk dan pulang untuk setiap shift per divisi. 
+              Klik "Edit" untuk mengubah jadwal.
+            </div>
+            ${divisions.map(div => {
+              const divSchedules = DB.getWorkSchedulesByDivision(div.id);
+              return `
+                <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+                  <div class="p-4 bg-slate-50 border-b flex justify-between items-center">
+                    <h3 class="font-semibold">${div.name}</h3>
+                    <button onclick="AppState.editDivisionSchedule('${div.id}')" 
+                      class="px-3 py-1 text-sm bg-emerald-500 text-white rounded hover:bg-emerald-600 transition">
+                      ✏️ Edit Jadwal
+                    </button>
+                  </div>
+                  <div class="overflow-x-auto">
+                    <table class="w-full">
+                      <thead class="bg-slate-50">
+                        <tr>
+                          <th class="text-left px-4 py-2 font-medium text-slate-500">Shift</th>
+                          <th class="text-left px-4 py-2 font-medium text-slate-500">Jam Masuk</th>
+                          <th class="text-left px-4 py-2 font-medium text-slate-500">Jam Pulang</th>
+                          <th class="text-left px-4 py-2 font-medium text-slate-500">Total Jam</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        ${['PAGI', 'SIANG', 'MALAM'].map(shift => {
+                          const s = divSchedules.find(s => s.shiftName === shift) || { startTime: '-', endTime: '-' };
+                          let totalHours = '-';
+                          if (s.startTime && s.endTime) {
+                            const [sh, sm] = s.startTime.split(':').map(Number);
+                            const [eh, em] = s.endTime.split(':').map(Number);
+                            let diff = (eh * 60 + em) - (sh * 60 + sm);
+                            if (diff < 0) diff += 24 * 60; // overnight shift
+                            totalHours = `${Math.floor(diff / 60)} jam ${diff % 60} menit`;
+                          }
+                          return `
+                            <tr class="border-t">
+                              <td class="px-4 py-2 font-medium">
+                                <span class="px-2 py-1 text-xs rounded ${
+                                  shift === 'PAGI' ? 'bg-amber-100 text-amber-700' :
+                                  shift === 'SIANG' ? 'bg-blue-100 text-blue-700' :
+                                  'bg-indigo-100 text-indigo-700'
+                                }">${shift}</span>
+                              </td>
+                              <td class="px-4 py-2">${s.startTime || '-'}</td>
+                              <td class="px-4 py-2">${s.endTime || '-'}</td>
+                              <td class="px-4 py-2 text-slate-500">${totalHours}</td>
+                            </tr>
+                          `;
+                        }).join('')}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
+              `;
+            }).join('')}
+          </div>
+        `;
+      },
+
+      getAdminPermissions() {
+        const permissionTypes = DB.getPermissionTypes();
+        
+        return `
+          <div class="space-y-4">
+            <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 text-amber-800 text-sm">
+              💡 <strong>Pengaturan Durasi Izin:</strong> Atur durasi maksimal untuk setiap jenis izin. 
+              Karyawan akan melihat durasi maksimal dan sistem akan menandai jika melebihi batas.
+            </div>
+            <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+              <div class="p-4 border-b flex justify-between items-center">
+                <h3 class="font-semibold">Jenis Izin & Durasi Maksimal</h3>
+                <button onclick="AppState.showAddPermissionType()" 
+                  class="px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition text-sm font-medium">
+                  + Tambah Jenis Izin
+                </button>
+              </div>
+              <div class="overflow-x-auto">
                 <table class="w-full">
                   <thead class="bg-slate-50">
                     <tr>
-                      <th class="text-left px-4 py-2 font-medium text-slate-500">Shift</th>
-                      <th class="text-left px-4 py-2 font-medium text-slate-500">Jam Mulai</th>
-                      <th class="text-left px-4 py-2 font-medium text-slate-500">Jam Selesai</th>
+                      <th class="text-left px-4 py-3 font-medium text-slate-500">Nama Izin</th>
+                      <th class="text-left px-4 py-3 font-medium text-slate-500">Durasi Maksimal</th>
+                      <th class="text-left px-4 py-3 font-medium text-slate-500">Status</th>
+                      <th class="text-left px-4 py-3 font-medium text-slate-500">Aksi</th>
                     </tr>
                   </thead>
                   <tbody>
-                    ${['PAGI', 'SIANG', 'MALAM'].map(shift => {
-                      const schedule = schedules.find(s => s.divisionId === div.id && s.shiftName === shift);
-                      return `
-                        <tr class="border-t">
-                          <td class="px-4 py-2 font-medium">${shift}</td>
-                          <td class="px-4 py-2">${schedule?.startTime || '08:00'}</td>
-                          <td class="px-4 py-2">${schedule?.endTime || '16:00'}</td>
-                        </tr>
-                      `;
-                    }).join('')}
+                    ${permissionTypes.map(pt => `
+                      <tr class="border-t hover:bg-slate-50">
+                        <td class="px-4 py-3 font-medium">
+                          <span class="flex items-center gap-2">
+                            <span class="text-lg">${State.getPermissionIcon(pt.name)}</span>
+                            ${pt.name}
+                          </span>
+                        </td>
+                        <td class="px-4 py-3">
+                          <span class="px-2 py-1 bg-amber-100 text-amber-700 rounded font-medium">${pt.maxDuration} menit</span>
+                        </td>
+                        <td class="px-4 py-3">
+                          <span class="px-2 py-1 text-xs font-medium rounded-full ${pt.active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}">
+                            ${pt.active ? 'Aktif' : 'Nonaktif'}
+                          </span>
+                        </td>
+                        <td class="px-4 py-3">
+                          <button onclick="AppState.editPermissionType('${pt.id}')" 
+                            class="text-sm text-emerald-600 hover:text-emerald-700 font-medium mr-2">
+                            ✏️ Edit
+                          </button>
+                          <button onclick="AppState.togglePermission('${pt.id}')" 
+                            class="text-sm ${pt.active ? 'text-red-600 hover:text-red-700' : 'text-emerald-600 hover:text-emerald-700'} font-medium">
+                            ${pt.active ? '🔴 Nonaktifkan' : '🟢 Aktifkan'}
+                          </button>
+                        </td>
+                      </tr>
+                    `).join('')}
                   </tbody>
                 </table>
               </div>
-            `).join('')}
+            </div>
           </div>
         `;
       },
@@ -876,7 +969,7 @@
                 </div>
                 <p class="text-slate-500 text-sm">Periode: <span id="reportPeriod">${today}</span></p>
               </div>
-              <div class="flex gap-2">
+              <div class="flex gap-2 flex-wrap">
                 <button onclick="AppState.refreshReports()" 
                   class="px-4 py-2 border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 transition text-sm font-medium">
                   🔄 Refresh
@@ -1100,18 +1193,13 @@
       },
 
       setAdminTab(tab) {
-        const divisions = DB.getDivisions();
-        const users = DB.getUsers();
-        const permissionTypes = DB.getPermissionTypes();
-        const schedules = DB.getWorkSchedules();
-
         // Update tab styles
-        ['divisions', 'employees', 'permissions', 'schedules'].forEach(t => {
+        ['divisions', 'employees', 'schedules', 'permissions'].forEach(t => {
           const el = document.getElementById(`tab-${t}`);
           if (el) {
             el.className = t === tab 
-              ? 'px-4 py-2 font-medium border-b-2 border-emerald-500 text-emerald-600'
-              : 'px-4 py-2 font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-700';
+              ? 'px-4 py-2 font-medium border-b-2 border-emerald-500 text-emerald-600 whitespace-nowrap'
+              : 'px-4 py-2 font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap';
           }
         });
 
@@ -1119,16 +1207,16 @@
         const content = document.getElementById('adminContent');
         switch(tab) {
           case 'employees':
-            content.innerHTML = State.getAdminEmployees(users, divisions);
-            break;
-          case 'permissions':
-            content.innerHTML = State.getAdminPermissions(permissionTypes);
+            content.innerHTML = State.getAdminEmployees();
             break;
           case 'schedules':
-            content.innerHTML = State.getAdminSchedules(divisions, schedules);
+            content.innerHTML = State.getAdminSchedules();
+            break;
+          case 'permissions':
+            content.innerHTML = State.getAdminPermissions();
             break;
           default:
-            content.innerHTML = State.getAdminDivisions(divisions, users);
+            content.innerHTML = State.getAdminDivisions();
         }
       },
 
@@ -1141,36 +1229,168 @@
       },
 
       showAddEmployee() {
-        const name = prompt('Nama Lengkap:');
-        if (!name) return;
-        const username = prompt('Username:');
-        if (!username) return;
-        const password = prompt('Password:');
-        if (!password) return;
-        
         const divisions = DB.getDivisions();
-        const divList = divisions.map((d, i) => `${i+1}. ${d.name}`).join('\n');
-        const divChoice = prompt(`Pilih Divisi:\n${divList}`);
-        const division = divisions[parseInt(divChoice) - 1];
-
-        const role = confirm('Jadikan Admin?') ? 'ADMIN' : 'KARYAWAN';
-
-        DB.addUser({
-          name: name.trim(),
-          username: username.trim(),
-          password: password,
-          role: role,
-          divisionId: division?.id || null
+        let html = `
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Nama Lengkap</label>
+              <input type="text" id="empName" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Username</label>
+              <input type="text" id="empUsername" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Password</label>
+              <input type="text" id="empPassword" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Divisi</label>
+              <select id="empDivision" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none">
+                ${divisions.map(d => `<option value="${d.id}">${d.name}</option>`).join('')}
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Role</label>
+              <select id="empRole" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none">
+                <option value="KARYAWAN">Karyawan</option>
+                <option value="ADMIN">Admin</option>
+              </select>
+            </div>
+          </div>
+        `;
+        
+        this.showModal('Tambah Karyawan', html, () => {
+          const name = document.getElementById('empName').value.trim();
+          const username = document.getElementById('empUsername').value.trim();
+          const password = document.getElementById('empPassword').value;
+          const divisionId = document.getElementById('empDivision').value;
+          const role = document.getElementById('empRole').value;
+          
+          if (!name || !username || !password) {
+            alert('Lengkapi semua field!');
+            return false;
+          }
+          
+          DB.addUser({ name, username, password, divisionId, role });
+          this.closeModal();
+          State.render();
+          return true;
         });
-        State.render();
+      },
+
+      editDivisionSchedule(divisionId) {
+        const division = DB.getDivision(divisionId);
+        const schedules = DB.getWorkSchedulesByDivision(divisionId);
+        
+        let html = `
+          <div class="space-y-4">
+            <p class="text-slate-500 text-sm">Atur jam kerja untuk divisi <strong>${division.name}</strong></p>
+            ${['PAGI', 'SIANG', 'MALAM'].map(shift => {
+              const s = schedules.find(sc => sc.shiftName === shift) || { startTime: '08:00', endTime: '16:00' };
+              return `
+                <div class="flex items-center gap-4 p-3 bg-slate-50 rounded-lg">
+                  <span class="w-20 font-medium ${
+                    shift === 'PAGI' ? 'text-amber-600' :
+                    shift === 'SIANG' ? 'text-blue-600' : 'text-indigo-600'
+                  }">${shift}</span>
+                  <div class="flex items-center gap-2">
+                    <input type="time" id="schedule_${shift}_start" value="${s.startTime || '08:00'}" 
+                      class="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none">
+                    <span class="text-slate-400">-</span>
+                    <input type="time" id="schedule_${shift}_end" value="${s.endTime || '16:00'}" 
+                      class="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none">
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `;
+        
+        this.showModal('Edit Jadwal - ' + division.name, html, () => {
+          ['PAGI', 'SIANG', 'MALAM'].forEach(shift => {
+            const start = document.getElementById(`schedule_${shift}_start`).value;
+            const end = document.getElementById(`schedule_${shift}_end`).value;
+            DB.updateWorkSchedule(divisionId, shift, start, end);
+          });
+          this.closeModal();
+          State.render();
+          return true;
+        });
       },
 
       showAddPermissionType() {
-        const name = prompt('Nama Jenis Izin:');
-        if (name && name.trim()) {
-          DB.addPermissionType(name.trim());
+        let html = `
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Nama Jenis Izin</label>
+              <input type="text" id="ptName" placeholder="contoh: Izin Keluarga" 
+                class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Durasi Maksimal (menit)</label>
+              <input type="number" id="ptDuration" value="15" min="1" max="120"
+                class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none">
+              <p class="text-xs text-slate-400 mt-1">Durasi maksimal yang diizinkan untuk jenis izin ini</p>
+            </div>
+          </div>
+        `;
+        
+        this.showModal('Tambah Jenis Izin', html, () => {
+          const name = document.getElementById('ptName').value.trim();
+          const maxDuration = parseInt(document.getElementById('ptDuration').value) || 15;
+          
+          if (!name) {
+            alert('Nama izin harus diisi!');
+            return false;
+          }
+          
+          DB.addPermissionType(name, maxDuration);
+          this.closeModal();
           State.render();
-        }
+          return true;
+        });
+      },
+
+      editPermissionType(id) {
+        const pt = DB.getPermissionType(id);
+        if (!pt) return;
+        
+        let html = `
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Nama Jenis Izin</label>
+              <input type="text" id="editPtName" value="${pt.name}" 
+                class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Durasi Maksimal (menit)</label>
+              <input type="number" id="editPtDuration" value="${pt.maxDuration || 15}" min="1" max="120"
+                class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none">
+              <p class="text-xs text-slate-400 mt-1">Karyawan akan diberi tahu jika melebihi durasi ini</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <input type="checkbox" id="editPtActive" ${pt.active ? 'checked' : ''} class="rounded">
+              <label for="editPtActive" class="text-sm text-slate-700">Aktif</label>
+            </div>
+          </div>
+        `;
+        
+        this.showModal('Edit Jenis Izin', html, () => {
+          const name = document.getElementById('editPtName').value.trim();
+          const maxDuration = parseInt(document.getElementById('editPtDuration').value) || 15;
+          const active = document.getElementById('editPtActive').checked;
+          
+          if (!name) {
+            alert('Nama izin harus diisi!');
+            return false;
+          }
+          
+          DB.updatePermissionType(id, { name, maxDuration, active });
+          this.closeModal();
+          State.render();
+          return true;
+        });
       },
 
       togglePermission(id) {
@@ -1309,7 +1529,52 @@
         a.download = `laporan-absensi-${startDate}-${endDate}.xls`;
         a.click();
         URL.revokeObjectURL(url);
-      }
+      },
+
+      // Modal functions
+      showModal(title, content, onSave) {
+        const modalHtml = `
+          <div class="fixed inset-0 modal-overlay z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-auto">
+              <div class="p-4 border-b flex justify-between items-center">
+                <h3 class="font-semibold text-lg">${title}</h3>
+                <button onclick="AppState.closeModal()" class="text-slate-400 hover:text-slate-600">
+                  <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                  </svg>
+                </button>
+              </div>
+              <div class="p-4">
+                ${content}
+              </div>
+              <div class="p-4 border-t flex justify-end gap-2">
+                <button onclick="AppState.closeModal()" class="px-4 py-2 border rounded-lg hover:bg-slate-50 transition">
+                  Batal
+                </button>
+                <button onclick="AppState.saveModal()" class="px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition">
+                  Simpan
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+        
+        document.getElementById('modalContainer').innerHTML = modalHtml;
+        this.modalCallback = onSave;
+      },
+
+      closeModal() {
+        document.getElementById('modalContainer').innerHTML = '';
+        this.modalCallback = null;
+      },
+
+      saveModal() {
+        if (this.modalCallback && this.modalCallback()) {
+          this.closeModal();
+        }
+      },
+
+      modalCallback: null
     };
 
     // ==================== INITIALIZE ====================
